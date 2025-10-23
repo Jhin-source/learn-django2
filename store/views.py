@@ -1,17 +1,19 @@
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
 from django.db.models import Count
-from rest_framework.decorators import api_view
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework import status
-from .models import Product, Collection, OrderItem
-from .serializers import ProductSerializer, CollectionSerializer
+from .models import Product, Collection, OrderItem, Review
+from .serializers import ProductSerializer, CollectionSerializer, ReviewSerializer
 
 class ProductViewSet(ModelViewSet):
   queryset = Product.objects.all()
   serializer_class = ProductSerializer
+  filter_backends = [SearchFilter, OrderingFilter]
+  pagination_class = PageNumberPagination
+  search_fields = ['title', 'description']
+  ordering_fields = ['unit_price', 'last_update']
 
   def get_serializer_context(self):
     return {'request': self.request}
@@ -35,3 +37,12 @@ class CollectionViewSet(ModelViewSet):
         status=status.HTTP_405_METHOD_NOT_ALLOWED
       )
     return super().destroy(request, *args, **kwargs)
+
+class ReviewViewSet(ModelViewSet):
+  serializer_class = ReviewSerializer
+
+  def get_queryset(self):
+    return Review.objects.filter(product_id=self.kwargs['product_pk'])
+
+  def get_serializer_context(self):
+    return {'proudct_id': self.kwargs['product_pk']}
